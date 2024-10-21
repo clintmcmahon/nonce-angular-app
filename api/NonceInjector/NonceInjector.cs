@@ -34,12 +34,13 @@ public static class NonceInjector
         // Replace 'DYNAMIC_NONCE_VALUE' with the generated nonce
         string updatedContent = indexContent.Replace("DYNAMIC_NONCE_VALUE", nonce);
 
+
         // Return the modified HTML content
         return new ContentResult
         {
             Content = updatedContent,
             ContentType = "text/html",
-            StatusCode = 200
+            StatusCode = 404
         };
     }
 }
