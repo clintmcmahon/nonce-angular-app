@@ -1,46 +1,62 @@
+using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using System;
 
 public static class NonceInjector
 {
     [FunctionName("NonceInjector")]
     public static async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+        [HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req,
         ILogger log)
     {
-        // Generate a new nonce
-        var nonce = Guid.NewGuid().ToString("N");
+        log.LogInformation("Nonce Injector function processed a request.");
 
-        // Path to the index.html file (assuming it's in the 'wwwroot' folder)
-        var indexPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+        // Generate a nonce using RNGCryptoServiceProvider for strong cryptography
+        var nonce = GenerateNonce();
 
-        if (!File.Exists(indexPath))
+        // Read index.html content from your Angular static site folder
+        var filePath = Path.Combine(Environment.CurrentDirectory, "wwwroot", "index.html");
+        string htmlContent;
+
+        if (File.Exists(filePath))
         {
-            log.LogError("Index.html not found at {0}", indexPath);
-            return new NotFoundResult();
+            htmlContent = await File.ReadAllTextAsync(filePath);
+        }
+        else
+        {
+            return new NotFoundObjectResult("Index file not found.");
         }
 
-        // Read the index.html content
-        string indexContent = await File.ReadAllTextAsync(indexPath, Encoding.UTF8);
+        // Replace nonce placeholder in the HTML file
+        htmlContent = htmlContent.Replace("DYNAMIC_NONCE_VALUE", nonce);
 
-        // Replace 'DYNAMIC_NONCE_VALUE' with the generated nonce
-        string updatedContent = indexContent.Replace("DYNAMIC_NONCE_VALUE", nonce);
-
-
-        // Return the modified HTML content
-        return new ContentResult
+        // Add the CSP header with the nonce value
+        var result = new ContentResult
         {
-            Content = updatedContent,
+            Content = htmlContent,
             ContentType = "text/html",
-            StatusCode = 200
         };
+
+        req.HttpContext.Response.Headers.Add("Content-Security-Policy", $"script-src 'self' 'nonce-{nonce}'");
+
+        return result;
+    }
+
+    // Helper method to generate a secure nonce
+    private static string GenerateNonce()
+    {
+        using (var rng = new RNGCryptoServiceProvider())
+        {
+            var byteArray = new byte[16];
+            rng.GetBytes(byteArray);
+            return Convert.ToBase64String(byteArray);
+        }
     }
 }
