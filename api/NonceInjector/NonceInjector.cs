@@ -22,7 +22,7 @@ public static class NonceInjector
         var nonce = GenerateNonce();
 
         // Read index.html content from your Angular static site folder
-        var filePath = Path.Combine(Environment.CurrentDirectory, "wwwroot", "index.html");
+        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
         string htmlContent;
 
         if (File.Exists(filePath))
