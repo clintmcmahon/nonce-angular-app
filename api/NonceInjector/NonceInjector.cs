@@ -13,40 +13,53 @@ public static class NonceInjector
 {
     [FunctionName("NonceInjector")]
     public static async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req,
-        ILogger log)
+    [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+    ILogger log)
     {
-        // Get the current directory
-        var currentDir = Directory.GetCurrentDirectory();
-        log.LogInformation($"Current Directory: {currentDir}");
+        log.LogInformation("Nonce Injector function processed a request.");
 
-        // Get all files and directories in the current directory
-        string[] filesAndDirs = Directory.GetFileSystemEntries(currentDir, "*", SearchOption.AllDirectories);
+        // Generate a nonce using RNGCryptoServiceProvider for strong cryptography
+        var nonce = GenerateNonce();
 
-        // Format the results into a readable string
-        var resultContent = "Files and directories in the current working directory:\n\n";
-        foreach (var entry in filesAndDirs)
+        // Path to the index.html file in the Azure Function's wwwroot folder
+        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+        string htmlContent;
+
+        if (File.Exists(filePath))
         {
-            resultContent += entry + "\n";
+            htmlContent = await File.ReadAllTextAsync(filePath);
+        }
+        else
+        {
+            log.LogError($"index.html file not found at {filePath}");
+            return new NotFoundObjectResult("Index file not found.");
         }
 
-        // Return the list as plain text
-        return new ContentResult
+        // Replace nonce placeholder in the HTML file
+        htmlContent = htmlContent.Replace("DYNAMIC_NONCE_VALUE", nonce);
+
+        // Add the CSP header with the nonce value
+        var result = new ContentResult
         {
-            Content = resultContent,
-            ContentType = "text/plain",
-            StatusCode = 200
+            Content = htmlContent,
+            ContentType = "text/html",
         };
+
+        req.HttpContext.Response.Headers.Add("Content-Security-Policy", $"script-src 'self' 'nonce-{nonce}'");
+
+        return result;
     }
 
-    // Helper method to generate a secure nonce
+    // Helper function to generate a secure nonce
     private static string GenerateNonce()
     {
+        var nonceBytes = new byte[16];
         using (var rng = new RNGCryptoServiceProvider())
         {
-            var byteArray = new byte[16];
-            rng.GetBytes(byteArray);
-            return Convert.ToBase64String(byteArray);
+            rng.GetBytes(nonceBytes);
         }
+
+        // Convert to Base64 for a URL-safe nonce
+        return Convert.ToBase64String(nonceBytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 }

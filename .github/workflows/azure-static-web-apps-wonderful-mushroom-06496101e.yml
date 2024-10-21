@@ -19,6 +19,28 @@ jobs:
         with:
           submodules: true
           lfs: false
+
+      # Install Node.js (required for Angular build)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16.x" # Use the Node.js version compatible with your Angular project
+
+      # Install dependencies for Angular project
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./src # Path to the Angular project
+
+      # Build the Angular app
+      - name: Build Angular App
+        run: npm run build --prod
+        working-directory: ./src # Path to the Angular project
+
+      # Copy the index.html from the build output to the Azure Function's wwwroot folder
+      - name: Copy index.html to Azure Function wwwroot
+        run: cp ./src/dist/nonce-angular-app/browser/index.html ./api/wwwroot/index.html
+
+      # Deploy to Azure Static Web Apps
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
