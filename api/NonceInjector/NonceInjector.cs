@@ -1,34 +1,38 @@
 using System;
-using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using System.IO;
 
 public static class NonceInjector
 {
     [FunctionName("NonceInjector")]
     public static async Task<IActionResult> Run(
-    [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
-    ILogger log)
+        [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
+        ILogger log)
     {
-        //Logs
         log.LogInformation("Nonce Injector function processed a request.");
 
-        // Generate a nonce using RNGCryptoServiceProvider for strong cryptography
+        // Generate a nonce
         var nonce = GenerateNonce();
 
-        // Path to the index.html file in the Azure Function's wwwroot folder
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+        // Construct the path to the wwwroot folder in Azure Functions
+        var basePath = Path.Combine(Environment.GetEnvironmentVariable("HOME"), "site", "wwwroot");
+        var filePath = Path.Combine(basePath, "index.html");
+
+        // Log the file path for debugging purposes
+        log.LogInformation($"Attempting to read the index.html file from: {filePath}");
+
         string htmlContent;
 
         if (File.Exists(filePath))
         {
             htmlContent = await File.ReadAllTextAsync(filePath);
+            log.LogInformation("Successfully read the index.html file.");
         }
         else
         {
@@ -51,11 +55,11 @@ public static class NonceInjector
         return result;
     }
 
-    // Helper function to generate a secure nonce
+    // Updated method to generate a secure nonce using RandomNumberGenerator
     private static string GenerateNonce()
     {
-        var nonceBytes = new byte[16];
-        using (var rng = new RNGCryptoServiceProvider())
+        byte[] nonceBytes = new byte[16];
+        using (var rng = RandomNumberGenerator.Create())
         {
             rng.GetBytes(nonceBytes);
         }
