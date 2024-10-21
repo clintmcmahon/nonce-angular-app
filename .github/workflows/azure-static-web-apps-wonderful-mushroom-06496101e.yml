@@ -32,9 +32,6 @@ jobs:
           api_location: "api" # Api source code path - optional
           output_location: "dist/nonce-angular-app/browser" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
-      # Copy the index.html from the build output to the Azure Function's wwwroot folder
-      - name: Copy index.html to Azure Function wwwroot
-        run: cp src/dist/nonce-angular-app/browser/index.html api/wwwroot/index.html
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
