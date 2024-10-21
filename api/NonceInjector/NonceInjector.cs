@@ -16,6 +16,7 @@ public static class NonceInjector
     [HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req,
     ILogger log)
     {
+        //Logs
         log.LogInformation("Nonce Injector function processed a request.");
 
         // Generate a nonce using RNGCryptoServiceProvider for strong cryptography
