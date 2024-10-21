@@ -40,7 +40,7 @@ public static class NonceInjector
         {
             Content = updatedContent,
             ContentType = "text/html",
-            StatusCode = 404
+            StatusCode = 200
         };
     }
 }
