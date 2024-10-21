@@ -1,0 +1,9 @@
+{
+  "routes": [
+    {
+      "route": "/*",
+      "rewrite": "/api/NonceInjector",
+      "statusCode": 200
+    }
+  ]
+}
