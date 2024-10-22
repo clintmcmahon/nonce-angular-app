@@ -19,7 +19,7 @@ module.exports = async function (context, req) {
     const nonce = Math.random().toString(36).substr(2, 12);
 
     // Replace the old nonce in the index.html file with the new one
-    indexContent = indexContent.replace(/nonce="[^"]*"/, `nonce="${nonce}"`);
+    indexContent = indexContent.replace("DYNAMIC_NONCE_VALUE", `${nonce}`);
 
     // Serve the updated index.html file
     context.res = {
